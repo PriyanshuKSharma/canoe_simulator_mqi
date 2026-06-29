@@ -1,125 +1,109 @@
-# Virtual Web CANoe Simulator
+# AutoTest Studio
 
-Web-based CAN bus and BMS simulation platform for development, demos, signal analysis, and AI automation workflows.
+Desktop CAN bus test automation platform for BMS development, signal analysis, fault injection, and test reporting — built as a Python alternative to Vector CANoe with CAPL-like scripting.
 
-The simulator generates virtual BMS CAN frames, decodes them with a DBC file, streams live trace data to a React dashboard, supports fault injection, stores events, and can forward fault events to n8n or an AI diagnostics workflow.
+AutoTest Studio connects to a virtual or real CAN bus, decodes frames with a DBC file, runs automated test cases, logs results to SQLite, and provides a full GUI for monitoring, sending, and fault injection.
 
 ## Highlights
 
-- Virtual BMS CAN traffic generation at 100 ms intervals.
-- DBC-based CAN frame encoding and decoding with `cantools`.
-- Live browser trace window with CAN ID, DLC, payload, and decoded signals.
-- Real-time telemetry dashboard for SOC, voltage, current, temperature, BMS state, and message rate.
-- Fault injection for over-voltage, under-voltage, and over-temperature scenarios.
-- SQLite event logging with signal snapshots.
-- REST API and WebSocket streaming interface.
-- n8n webhook integration for automation workflows.
-- Optional OpenAI-based diagnostics with local heuristic fallback.
+- Desktop GUI built with CustomTkinter with 10 navigation panels.
+- CAN bus abstraction supporting virtual (python-can) and hardware interfaces (Vector XL, PCAN, SocketCAN).
+- DBC-based frame encoding and decoding with `cantools`.
+- CAPL-equivalent Python decorators: `@on_start`, `@on_stop`, `@on_message`, `@every`.
+- Structured test framework with `TestCase`, step-level `check`, `expect_equal`, and `expect_in_range`.
+- Periodic task scheduler for timer-driven signal generation.
+- SQLite persistence for CAN logs, test results, and events.
+- Fault injection panel for over-voltage, under-voltage, and over-temperature scenarios.
+- Project state saved and restored across sessions as JSON.
 
 ## System Overview
 
 ```text
-React Dashboard
+AutoTest Studio GUI (CustomTkinter)
     |
-    | REST + WebSocket
+    | CAN Monitor / Sender / Signal Viewer / DBC Explorer
+    | Test Builder / Test Runner / Fault Injection / Reports
     v
-FastAPI Backend
-    |
-    | python-can virtual bus
-    | cantools DBC encode/decode
+Core Layer
+    |-- BusManager      python-can virtual or hardware bus
+    |-- DBCManager      cantools encode / decode
+    |-- Project         session config (JSON)
+    |-- EventLogger     SQLite event persistence
     v
-Virtual BMS CAN Simulator
-    |
-    | SQLite events
-    | Webhook events
+Framework Layer
+    |-- TestCase        step-level assertions and result tracking
+    |-- Decorators      @on_start @on_stop @on_message @every
+    |-- Scheduler       periodic timer tasks
     v
-n8n / AI diagnostics / ticketing tools
+Plugins
+    |-- virtual.py      python-can virtual interface
+    |-- vector.py       Vector XL / PCAN / SocketCAN stub
 ```
 
 ## Tech Stack
 
 | Area | Technology |
 | --- | --- |
-| Frontend | React, Vite |
-| Backend | Python, FastAPI |
-| Realtime | WebSockets |
-| CAN simulation | python-can virtual interface |
+| GUI | Python, CustomTkinter |
+| CAN interface | python-can |
 | DBC handling | cantools |
 | Storage | SQLite |
-| Automation | n8n webhooks |
-| Deployment | Docker Compose |
+| Test framework | Custom Python (CAPL-equivalent) |
 
 ## Quick Start
 
-### Run With Docker Compose
+### Prerequisites
+
+- Python 3.10 or later
+- pip
+
+### Run Locally (Windows)
+
+```bat
+run_local.bat
+```
+
+Or manually:
 
 ```bash
-docker compose up --build
-```
-
-Open the dashboard:
-
-```text
-http://localhost:3000
-```
-
-Backend API:
-
-```text
-http://localhost:8000
-```
-
-FastAPI documentation:
-
-```text
-http://localhost:8000/docs
-```
-
-### Run Locally
-
-Start the backend:
-
-```bash
-cd backend
+cd AutoTestStudio
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python app.py
 ```
 
-Start the frontend in a second terminal:
+### Run Locally (Linux / macOS)
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cd AutoTestStudio
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
 ```
 
-Open:
+## GUI Panels
 
-```text
-http://localhost:3000
-```
-
-## Dashboard Capabilities
-
-| Area | Description |
+| Panel | Description |
 | --- | --- |
-| Bus status | Shows WebSocket connection state, BMS mode, and message rate. |
-| Trace window | Displays live decoded CAN frames. |
-| Telemetry | Shows SOC, pack voltage, pack current, and max cell temperature. |
-| Trend charts | Tracks voltage and current history. |
-| Fault injection | Triggers OV, UV, OT, and clear-fault commands. |
-| Event log | Lists recent simulation and fault events. |
-| Diagnostics | Runs AI or local heuristic analysis for selected events. |
-| Webhooks | Registers n8n or other automation endpoints. |
+| Home | Project overview and quick-start actions. |
+| CAN Monitor | Live CAN frame trace with ID, DLC, data, and decoded signals. |
+| CAN Sender | Manual frame construction and DBC-assisted signal send. |
+| Signal Viewer | Decoded signal table with live value updates. |
+| DBC Explorer | Browse loaded DBC messages, signals, and attributes. |
+| Test Builder | Create and edit test case definitions. |
+| Test Runner | Execute tests with live step-by-step result streaming. |
+| Fault Injection | Trigger OV, UV, and OT faults and observe bus behaviour. |
+| Reports | View, filter, and export historical test results. |
+| Settings | Configure bus interface, channel, DBC path, and logging. |
 
-## CAN Messages
+## CAN Messages (BMS DBC)
 
-The included DBC file is located at:
+The included DBC file is at:
 
 ```text
-backend/bms.dbc
+AutoTestStudio/assets/bms.dbc
 ```
 
 | CAN ID | Message | Purpose |
@@ -128,128 +112,92 @@ backend/bms.dbc
 | `0x101` | `BMS_PackVals` | Pack voltage, pack current, average cell voltage, voltage deviation |
 | `0x102` | `BMS_Temps` | Max, min, and average cell temperature |
 
-Expected bus rate is approximately 30 messages per second because the simulator sends three CAN frames every 100 ms.
+## Writing Tests (CAPL-style Python)
 
-## Fault Injection
+Tests live in `AutoTestStudio/tests/`. The framework mirrors CANoe CAPL event blocks.
 
-Faults can be triggered from the dashboard or through the REST API.
+```python
+from framework.decorators import on_start, on_stop, on_message, every
+from framework.testcase import TestCase
+from core.bus import bus_manager
+from core.logger import logger
+import can
+
+tc = TestCase("BMS_Voltage_Check")
+
+@on_start
+def setup():
+    bus_manager.connect(interface="virtual", channel="vcan0")
+
+@on_message(0x101)
+def check_voltage(msg: can.Message):
+    voltage = int.from_bytes(msg.data[0:2], "little") * 0.1
+    tc.expect_in_range(voltage, 200, 450, "Pack Voltage")
+
+@on_stop
+def teardown():
+    tc.save()
+    bus_manager.disconnect()
+```
+
+| Decorator | CAPL equivalent |
+| --- | --- |
+| `@on_start` | `on start {}` |
+| `@on_stop` | `on stop {}` |
+| `@on_message(0x100)` | `on message 0x100 {}` |
+| `@every(100)` | `on timer t { setTimer(t, 100); }` |
+
+Run an example test directly:
 
 ```bash
-curl -X POST http://localhost:8000/api/faults/inject ^
-  -H "Content-Type: application/json" ^
-  -d "{\"fault_type\":\"over_voltage\"}"
+python AutoTestStudio/tests/example_bms.py
 ```
 
-Supported values:
+## Bus Plugins
 
-```text
-over_voltage
-under_voltage
-over_temperature
-clear
-```
-
-## API Summary
-
-| Method | Endpoint | Purpose |
+| Plugin | Interface string | Use case |
 | --- | --- | --- |
-| `GET` | `/api/health` | Backend and simulator health. |
-| `GET` | `/api/metrics` | Current telemetry snapshot. |
-| `GET` | `/api/dbc/messages` | DBC message metadata. |
-| `POST` | `/api/faults/inject` | Inject or clear a fault. |
-| `GET` | `/api/faults/active` | Active fault state. |
-| `GET` | `/api/events` | Recent event logs. |
-| `POST` | `/api/analyze/{event_id}` | AI or heuristic diagnostics. |
-| `POST` | `/api/webhooks` | Register webhook. |
-| `GET` | `/api/webhooks` | List webhooks. |
-| `DELETE` | `/api/webhooks/{hook_id}` | Delete webhook. |
+| `plugins/virtual.py` | `virtual` | Development and CI without hardware |
+| `plugins/vector.py` | `vector`, `pcan`, `socketcan` | Real ECU hardware |
 
-WebSocket stream:
+Switch the interface from the Settings panel or in `config.py`:
 
-```text
-ws://localhost:8000/ws
-```
-
-## AI Diagnostics
-
-The simulator works without an OpenAI key. When no key is configured, it uses a local heuristic diagnostics engine.
-
-To enable OpenAI-backed diagnostics:
-
-```bash
-set OPENAI_API_KEY=your_api_key_here
-```
-
-For Docker Compose, add it to the backend service environment:
-
-```yaml
-environment:
-  - OPENAI_API_KEY=your_api_key_here
-```
-
-## n8n Integration
-
-Register an n8n webhook URL from the dashboard or with `/api/webhooks`. Each injected fault sends a structured payload containing the event type, severity, timestamp, message, and signal snapshot.
-
-Recommended workflow:
-
-```text
-Webhook Trigger
-  -> Severity filter
-  -> AI root-cause summary
-  -> Jira issue creation
-  -> Team notification
-  -> Event archive
-```
-
-When the backend runs in Docker and n8n runs on the host, use:
-
-```text
-http://host.docker.internal:5678/webhook/<id>
+```python
+DEFAULT_BUS     = "virtual"
+DEFAULT_CHANNEL = "vcan0"
 ```
 
 ## Project Structure
 
 ```text
-canoe_simulator/
-  backend/              FastAPI backend, simulator, DBC, SQLite database
-  frontend/             React dashboard
-  docs/                 Detailed subsystem documentation
-  docker-compose.yml    Container orchestration
-  run_local.bat         Local Windows launcher
-  README.md             Project overview
+canoe_simulator_mqi/
+  AutoTestStudio/
+    assets/           BMS DBC file
+    core/             BusManager, DBCManager, Project, EventLogger
+    database/         SQLite connection and schema
+    framework/        TestCase, decorators, scheduler
+    gui/              All CustomTkinter panels and MainWindow
+    plugins/          Virtual and hardware CAN bus plugins
+    tests/            Example test scripts
+    app.py            Application entry point
+    config.py         Defaults (bus, channel, DB path, version)
+    requirements.txt  Python dependencies
+  run_local.bat       Windows one-click launcher
+  README.md           This file
 ```
 
-## Documentation
+## Database Schema
 
-| Document | Description |
+Results and events are stored in `autoteststudio.db` (SQLite).
+
+| Table | Purpose |
 | --- | --- |
-| [Architecture](docs/ARCHITECTURE.md) | System design, data lifecycle, and component boundaries. |
-| [Backend](docs/BACKEND.md) | FastAPI, simulator lifecycle, events, diagnostics, and validation. |
-| [Frontend](docs/FRONTEND.md) | Dashboard layout, WebSocket behavior, and UI standards. |
-| [CAN and DBC](docs/CAN_DBC.md) | CAN frames, signals, state values, and error flags. |
-| [API and WebSocket](docs/API_WEBSOCKET.md) | REST endpoints, WebSocket payloads, and commands. |
-| [Automation and AI](docs/AUTOMATION_AI.md) | n8n flow, OpenAI behavior, payloads, and ticketing. |
-| [Operations](docs/OPERATIONS.md) | Run commands, validation, troubleshooting, and Docker notes. |
-
-## Validation
-
-Validate DBC encode/decode behavior:
-
-```bash
-python backend\app\test_simulator.py
-```
-
-Build the frontend:
-
-```bash
-cd frontend
-npm run build
-```
+| `test_results` | Test name, status, timestamp, step details (JSON) |
+| `events` | Event type, severity, message, signal snapshot (JSON) |
+| `can_log` | CAN ID, DLC, raw data, channel, timestamp |
 
 ## Scope
 
-This project is intended for simulation, workflow development, training, demos, and automation prototyping.
+AutoTest Studio is intended for simulation, test development, training, and automation prototyping.
 
 It is not a replacement for Vector CANoe, Vector hardware, CAPL execution, HIL validation, or safety-critical ECU verification.
-
