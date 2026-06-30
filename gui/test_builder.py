@@ -38,7 +38,6 @@ def heartbeat():
     pass
 '''
 
-
 class TestBuilderPanel(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent, fg_color="transparent")
@@ -46,26 +45,114 @@ class TestBuilderPanel(ctk.CTkFrame):
         self._build()
 
     def _build(self):
-        top = ctk.CTkFrame(self, fg_color="transparent")
-        top.pack(fill="x", padx=16, pady=(12, 4))
-        ctk.CTkLabel(top, text="Test Builder", font=ctk.CTkFont(size=18, weight="bold")).pack(side="left")
-        ctk.CTkButton(top, text="Save", width=80, command=self._save).pack(side="right", padx=4)
-        ctk.CTkButton(top, text="Save As", width=80, command=self._save_as).pack(side="right", padx=4)
-        ctk.CTkButton(top, text="Open", width=80, command=self._open).pack(side="right", padx=4)
-        ctk.CTkButton(top, text="New", width=80, command=self._new).pack(side="right", padx=4)
+        # ─── HEADER ───
+        header_frame = ctk.CTkFrame(self, fg_color="transparent")
+        header_frame.pack(fill="x", padx=24, pady=(20, 12))
+        header_frame.columnconfigure(0, weight=1)
+        header_frame.columnconfigure(1, weight=0)
 
-        self._path_label = ctk.CTkLabel(self, text="Unsaved", text_color="gray")
-        self._path_label.pack(anchor="w", padx=16)
+        title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_frame.grid(row=0, column=0, sticky="w")
 
-        self._editor = ctk.CTkTextbox(self, font=ctk.CTkFont(family="Courier", size=13))
-        self._editor.pack(fill="both", expand=True, padx=16, pady=8)
+        title_label = ctk.CTkLabel(
+            title_frame,
+            text="Test Builder",
+            font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
+            anchor="w"
+        )
+        title_label.pack(anchor="w")
+
+        subtitle_label = ctk.CTkLabel(
+            title_frame,
+            text="Create, edit, and maintain Python automated test scripts",
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            text_color=("gray50", "gray40"),
+            anchor="w"
+        )
+        subtitle_label.pack(anchor="w", pady=(2, 0))
+
+        # Toolbar Actions
+        actions_row = ctk.CTkFrame(header_frame, fg_color="transparent")
+        actions_row.grid(row=0, column=1, sticky="e")
+
+        self.btn_new = ctk.CTkButton(
+            actions_row, text="New Script", width=90, height=32,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            command=self._new
+        )
+        self.btn_new.pack(side="left", padx=4)
+
+        self.btn_open = ctk.CTkButton(
+            actions_row, text="Open File", width=90, height=32,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            command=self._open
+        )
+        self.btn_open.pack(side="left", padx=4)
+
+        self.btn_save_as = ctk.CTkButton(
+            actions_row, text="Save As", width=80, height=32,
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            fg_color="transparent",
+            hover_color=("gray90", "gray28"),
+            border_width=1,
+            border_color=("gray80", "gray30"),
+            text_color=("#1f538d", "#60a5fa"),
+            command=self._save_as
+        )
+        self.btn_save_as.pack(side="right", padx=4)
+
+        self.btn_save = ctk.CTkButton(
+            actions_row, text="Save", width=80, height=32,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=("#1f538d", "#60a5fa"),
+            command=self._save
+        )
+        self.btn_save.pack(side="right", padx=4)
+
+        # ─── EDITOR CARD CONTAINER ───
+        editor_card = ctk.CTkFrame(
+            self,
+            fg_color=("white", "gray22"),
+            border_width=1,
+            border_color=("gray85", "gray28"),
+            corner_radius=12
+        )
+        editor_card.pack(fill="both", expand=True, padx=24, pady=(0, 20))
+
+        # Path metadata header
+        path_header = ctk.CTkFrame(editor_card, fg_color=("gray95", "gray25"), height=36, corner_radius=10)
+        path_header.pack(fill="x", padx=12, pady=(12, 4))
+        path_header.pack_propagate(False)
+
+        ctk.CTkLabel(
+            path_header,
+            text="Active File:",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=("#1f538d", "#60a5fa")
+        ).pack(side="left", padx=12)
+
+        self._path_label = ctk.CTkLabel(
+            path_header,
+            text="Untitled Script",
+            font=ctk.CTkFont(family="Consolas", size=12),
+            text_color=("gray40", "gray60")
+        )
+        self._path_label.pack(side="left", padx=(4, 12))
+
+        # Code Textbox Editor
+        self._editor = ctk.CTkTextbox(
+            editor_card,
+            font=ctk.CTkFont(family="Consolas", size=13),
+            fg_color="transparent"
+        )
+        self._editor.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         self._editor.insert("end", TEMPLATE)
 
     def _new(self):
         self._editor.delete("1.0", "end")
         self._editor.insert("end", TEMPLATE)
         self._current_path = None
-        self._path_label.configure(text="Unsaved")
+        self._path_label.configure(text="Untitled Script")
 
     def _open(self):
         path = filedialog.askopenfilename(filetypes=[("Python", "*.py"), ("All", "*.*")])
