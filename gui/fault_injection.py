@@ -5,10 +5,34 @@ from core.dbc import dbc_manager
 from core.logger import logger
 
 FAULTS = {
-    "Over Voltage":    {"BMS_Status": {"SOC": 80, "BMS_State": 4, "Error_Flags": 1, "Counter": 0, "Checksum": 0}},
-    "Under Voltage":   {"BMS_Status": {"SOC": 5,  "BMS_State": 4, "Error_Flags": 2, "Counter": 0, "Checksum": 0}},
-    "Over Temperature":{"BMS_Temps":  {"Temp_Max": 75, "Temp_Min": 40, "Temp_Avg": 58}},
-    "Clear Faults":    {"BMS_Status": {"SOC": 70, "BMS_State": 1, "Error_Flags": 0, "Counter": 0, "Checksum": 0}},
+    "Over Voltage": {
+        "BMS_Status": {
+            "SOC": 80,
+            "BMS_State": 4,
+            "Error_Flags": 1,
+            "Counter": 0,
+            "Checksum": 0,
+        }
+    },
+    "Under Voltage": {
+        "BMS_Status": {
+            "SOC": 5,
+            "BMS_State": 4,
+            "Error_Flags": 2,
+            "Counter": 0,
+            "Checksum": 0,
+        }
+    },
+    "Over Temperature": {"BMS_Temps": {"Temp_Max": 75, "Temp_Min": 40, "Temp_Avg": 58}},
+    "Clear Faults": {
+        "BMS_Status": {
+            "SOC": 70,
+            "BMS_State": 1,
+            "Error_Flags": 0,
+            "Counter": 0,
+            "Checksum": 0,
+        }
+    },
 }
 
 
@@ -26,7 +50,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             header_frame,
             text="Fault Injection",
             font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
-            anchor="w"
+            anchor="w",
         )
         title_label.pack(anchor="w")
 
@@ -35,7 +59,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             text="Inject simulated database faults or errant raw frames directly onto the active bus",
             font=ctk.CTkFont(family="Segoe UI", size=13),
             text_color=("gray50", "gray40"),
-            anchor="w"
+            anchor="w",
         )
         subtitle_label.pack(anchor="w", pady=(2, 0))
 
@@ -61,7 +85,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             fg_color=("white", "gray22"),
             border_width=1,
             border_color=("gray85", "gray28"),
-            corner_radius=12
+            corner_radius=12,
         )
         faults_card.grid(row=0, column=0, sticky="ew", pady=(0, 16))
 
@@ -75,7 +99,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             text="PREDEFINED FAULT PAYLOADS",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color=("#1f538d", "#60a5fa"),
-            anchor="w"
+            anchor="w",
         ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
 
         divider1 = ctk.CTkFrame(faults_inner, height=1, fg_color=("gray90", "gray28"))
@@ -85,7 +109,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             is_clear = "Clear" in fault_name
             color = "#ef4444" if not is_clear else "#6b7280"
             hover = "#dc2626" if not is_clear else "#4b5563"
-            
+
             btn = ctk.CTkButton(
                 faults_inner,
                 text=fault_name,
@@ -93,7 +117,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
                 fg_color=color,
                 hover_color=hover,
                 command=lambda fn=fault_name, p=payload: self._inject(fn, p),
-                height=38
+                height=38,
             )
             btn.grid(row=idx // 2 + 2, column=idx % 2, padx=6, pady=6, sticky="ew")
 
@@ -103,7 +127,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             fg_color=("white", "gray22"),
             border_width=1,
             border_color=("gray85", "gray28"),
-            corner_radius=12
+            corner_radius=12,
         )
         custom_card.grid(row=1, column=0, sticky="ew")
         custom_card.columnconfigure(0, weight=1)
@@ -116,20 +140,37 @@ class FaultInjectionPanel(ctk.CTkFrame):
             text="CUSTOM RAW FRAME INJECTION",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color=("#1f538d", "#60a5fa"),
-            anchor="w"
+            anchor="w",
         ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
 
         divider2 = ctk.CTkFrame(custom_inner, height=1, fg_color=("gray90", "gray28"))
         divider2.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 12))
 
         # ID Row
-        ctk.CTkLabel(custom_inner, text="CAN ID (hex):", font=ctk.CTkFont(family="Segoe UI", size=13)).grid(row=2, column=0, sticky="w", pady=6)
-        self._id_entry = ctk.CTkEntry(custom_inner, placeholder_text="0x100", font=ctk.CTkFont(family="Consolas", size=13), width=100)
+        ctk.CTkLabel(
+            custom_inner,
+            text="CAN ID (hex):",
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+        ).grid(row=2, column=0, sticky="w", pady=6)
+        self._id_entry = ctk.CTkEntry(
+            custom_inner,
+            placeholder_text="0x100",
+            font=ctk.CTkFont(family="Consolas", size=13),
+            width=100,
+        )
         self._id_entry.grid(row=2, column=1, sticky="w", pady=6, padx=(12, 0))
 
         # Data Row
-        ctk.CTkLabel(custom_inner, text="Data (hex bytes):", font=ctk.CTkFont(family="Segoe UI", size=13)).grid(row=3, column=0, sticky="w", pady=6)
-        self._data_entry = ctk.CTkEntry(custom_inner, placeholder_text="80 04 01 00 FF 00 00 00", font=ctk.CTkFont(family="Consolas", size=13))
+        ctk.CTkLabel(
+            custom_inner,
+            text="Data (hex bytes):",
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+        ).grid(row=3, column=0, sticky="w", pady=6)
+        self._data_entry = ctk.CTkEntry(
+            custom_inner,
+            placeholder_text="80 04 01 00 FF 00 00 00",
+            font=ctk.CTkFont(family="Consolas", size=13),
+        )
         self._data_entry.grid(row=3, column=1, sticky="ew", pady=6, padx=(12, 0))
 
         custom_inner.columnconfigure(1, weight=1)
@@ -141,9 +182,11 @@ class FaultInjectionPanel(ctk.CTkFrame):
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             fg_color=("#1f538d", "#60a5fa"),
             command=self._inject_raw,
-            height=34
+            height=34,
         )
-        self.inject_raw_btn.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        self.inject_raw_btn.grid(
+            row=4, column=0, columnspan=2, sticky="ew", pady=(12, 0)
+        )
 
         # ─── CONSOLE ACTIVITY LOG (Right Column) ───
         log_card = ctk.CTkFrame(
@@ -151,7 +194,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             fg_color=("white", "gray22"),
             border_width=1,
             border_color=("gray85", "gray28"),
-            corner_radius=12
+            corner_radius=12,
         )
         log_card.pack(fill="both", expand=True)
 
@@ -163,7 +206,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             text="INJECTION ACTIVITY LOG",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color=("#1f538d", "#60a5fa"),
-            anchor="w"
+            anchor="w",
         ).pack(anchor="w", pady=(0, 6))
 
         self._log_box = ctk.CTkTextbox(
@@ -174,7 +217,7 @@ class FaultInjectionPanel(ctk.CTkFrame):
             border_color=("gray80", "gray30"),
             border_spacing=6,
             corner_radius=6,
-            state="disabled"
+            state="disabled",
         )
         self._log_box.pack(fill="both", expand=True)
 
@@ -189,7 +232,9 @@ class FaultInjectionPanel(ctk.CTkFrame):
             for msg_name, signals in payload.items():
                 data = dbc_manager.encode(msg_name, signals)
                 msg_def = dbc_manager._db.get_message_by_name(msg_name)
-                msg = can.Message(arbitration_id=msg_def.frame_id, data=data, is_extended_id=False)
+                msg = can.Message(
+                    arbitration_id=msg_def.frame_id, data=data, is_extended_id=False
+                )
                 bus_manager.send(msg)
             logger.fault(f"Fault injected: {name}", payload)
             self._log(f"[INJECTED] {name}")
@@ -202,7 +247,9 @@ class FaultInjectionPanel(ctk.CTkFrame):
             return
         try:
             raw_id = self._id_entry.get().strip()
-            can_id = int(raw_id, 16) if raw_id.lower().startswith("0x") else int(raw_id, 10)
+            can_id = (
+                int(raw_id, 16) if raw_id.lower().startswith("0x") else int(raw_id, 10)
+            )
             data = bytes(int(b, 16) for b in self._data_entry.get().strip().split())
             msg = can.Message(arbitration_id=can_id, data=data, is_extended_id=False)
             bus_manager.send(msg)
